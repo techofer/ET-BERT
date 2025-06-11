@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 #-*- coding:utf-8 -*-
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(__file__, os.pardir, os.pardir)))
 
 import os
 import sys
@@ -17,24 +19,26 @@ import pandas as pd
 import scapy.all as scapy
 from functools import reduce
 from flowcontainer.extractor import extract
-
+from occlusion.occluder import *
 random.seed(40)
 
-word_dir = "I:/corpora/"
+word_dir = os.path.abspath(os.path.join(__file__, os.pardir, os.pardir, "corpora"))
+os.makedirs(word_dir, exist_ok=True) 
+
 word_name = "encrypted_burst.txt"
 
 def convert_pcapng_2_pcap(pcapng_path, pcapng_file, output_path):
     
     pcap_file = output_path + pcapng_file.replace('pcapng','pcap')
-    cmd = "I:\\editcap.exe -F pcap %s %s"
+    cmd = "editcap.exe -F pcap %s %s"
     command = cmd%(pcapng_path+pcapng_file, pcap_file)
     os.system(command)
     return 0
 
 def split_cap(pcap_path, pcap_file, pcap_name, pcap_label='', dataset_level = 'flow'):
     
-    if not os.path.exists(pcap_path + "\\splitcap"):
-        os.mkdir(pcap_path + "\\splitcap")
+    if not os.path.exists(pcap_path + "\\splitcap\\"):
+        os.mkdir(pcap_path + "\\splitcap\\")
     if pcap_label != '':
         if not os.path.exists(pcap_path + "\\splitcap\\" + pcap_label):
             os.mkdir(pcap_path + "\\splitcap\\" + pcap_label)
@@ -47,9 +51,9 @@ def split_cap(pcap_path, pcap_file, pcap_name, pcap_label='', dataset_level = 'f
             os.mkdir(pcap_path + "\\splitcap\\" + pcap_name)
         output_path = pcap_path + "\\splitcap\\" + pcap_name
     if dataset_level == 'flow':
-        cmd = "I:\\SplitCap.exe -r %s -s session -o " + output_path
+        cmd = "SplitCap.exe -r %s -s session -o " + output_path
     elif dataset_level == 'packet':
-        cmd = "I:\\SplitCap.exe -r %s -s packets 1 -o " + output_path
+        cmd = "SplitCap.exe -r %s -s packets 1 -o " + output_path
     command = cmd%pcap_file
     os.system(command)
     return output_path
@@ -155,6 +159,7 @@ def get_feature_flow(label_pcap, payload_len, payload_pac):
     
     feature_data = []
     packets = scapy.rdpcap(label_pcap)
+    packets = occlude_D1(packets)
     packet_count = 0  
     flow_data_string = '' 
 
@@ -208,7 +213,9 @@ def get_feature_flow(label_pcap, payload_len, payload_pac):
 
     return feature_data
 
-def generation(pcap_path, samples, features, splitcap = False, payload_length = 128, payload_packet = 5, dataset_save_path = "I:\\ex_results\\", dataset_level = "flow"):
+def generation(pcap_path, samples, features, splitcap = False, payload_length = 128, payload_packet = 5, dataset_save_path = "ex_results\\", dataset_level = "flow"):
+    os.makedirs(dataset_save_path, exist_ok=True)
+    os.makedirs(os.path.join(dataset_save_path, "dataset"), exist_ok=True)
     if os.path.exists(dataset_save_path + "dataset.json"):
         print("the pcap file of %s is finished generating."%pcap_path)
         
@@ -262,8 +269,8 @@ def generation(pcap_path, samples, features, splitcap = False, payload_length = 
 
         tls13 = 0
         if tls13:
-            record_file = "I:\\ex_results\\picked_file_record"
-            target_path = "I:\\ex_results\\packet_splitcap\\"
+            record_file = "ex_results\\picked_file_record"
+            target_path = "ex_results\\packet_splitcap\\"
             if not os.path.getsize(target_path):
                 with open(record_file, 'r') as f:
                     record_files = f.read().split('\n')
@@ -378,11 +385,11 @@ def generation(pcap_path, samples, features, splitcap = False, payload_length = 
         all_data_number += dataset[label_id[label_name_list[index]]]["samples"]
     print("all\t%d"%(all_data_number))
 
-    with open(dataset_save_path + "\\picked_file_record","w") as p_f:
+    with open(dataset_save_path + "picked_file_record","w") as p_f:
         for i in r_file_record:
             p_f.write(i)
             p_f.write("\n")
-    with open(dataset_save_path + "\\dataset.json", "w") as f:
+    with open(dataset_save_path + "dataset.json", "w") as f:
         json.dump(dataset,fp=f,ensure_ascii=False,indent=4)
 
     X,Y = obtain_data(pcap_path, samples, features, dataset_save_path, json_data = dataset)
@@ -438,7 +445,7 @@ def obtain_data(pcap_path, samples, features, dataset_save_path, json_data = Non
     return X,Y
 
 def combine_dataset_json():
-    dataset_name = "I:\\traffic_pcap\\splitcap\\dataset-"
+    dataset_name = "\\traffic_pcap\\splitcap\\dataset-"
     # dataset vocab
     dataset = {}
     # progress
@@ -455,13 +462,13 @@ def combine_dataset_json():
             print(new_key)
             if new_key not in dataset.keys():
                 dataset[new_key] = json_data[key]
-    with open("I:\\traffic_pcap\\splitcap\\dataset.json","w") as f:
+    with open("\\traffic_pcap\\splitcap\\dataset.json","w") as f:
         json.dump(dataset, fp=f, ensure_ascii=False, indent=4)
     return 0
 
 def pretrain_dataset_generation(pcap_path):
-    output_split_path = "I:\\dataset\\"
-    pcap_output_path = "I:\\dataset\\"
+    output_split_path = "\\dataset\\"
+    pcap_output_path = "\\dataset\\"
     
     if not os.listdir(pcap_output_path):
         print("Begin to convert pcapng to pcap.")
@@ -493,7 +500,7 @@ def size_format(size):
 
 if __name__ == '__main__':
     # pretrain
-    pcap_path = "I:\\pcaps\\"
+    pcap_path = "\\pcaps\\"
     # tls 13 downstream
     #pcap_path, samples, features = "I:\\dataset\\labeled\\", 500, ["payload","length","time","direction","message_type"]
     #X,Y = generation(pcap_path, samples, features, splitcap=False)
