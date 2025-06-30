@@ -159,7 +159,7 @@ def get_feature_flow(label_pcap, payload_len, payload_pac):
     
     feature_data = []
     packets = scapy.rdpcap(label_pcap)
-    packets = occlude_D1(packets)
+    # packets = occlude_D2(packets)
     packet_count = 0  
     flow_data_string = '' 
 

@@ -28,7 +28,7 @@ import open_dataset_deal
 _category = 120 # dataset class
 dataset_dir = ".\\datasets\\" # the path to save dataset for dine-tuning
 
-pcap_path, dataset_save_path, samples, features, dataset_level = ".\\splitcap\\", ".\\result\\", [80], ["payload"], "packet"
+pcap_path, dataset_save_path, samples, features, dataset_level = ".\\splitcap\\", ".\\result\\", [80], ["payload"], "flow"
 
 def dataset_extract(model):
     
@@ -81,30 +81,7 @@ def dataset_extract(model):
 
     x_payload = np.array(X_payload)
     dataset_label = np.array(Y_all)
-    # сразу после
-    # x_payload    = np.array(filtered_payload)
-    # dataset_label = np.array(filtered_labels)
 
-
-
-    # x_payload_train = []
-    # y_train = []
-
-    # x_payload_valid = []
-    # y_valid = []
-
-    # x_payload_test = []
-    # y_test = []
-        # # посчитаем примеры по классам
-    # _, labels = open_dataset_deal.statistic_dataset_sample_count(pcap_path + 'splitcap\\')
-
-    # cnt = Counter(Y_all)
-    # print("Всего классов в выборке:", len(cnt))
-    # # # выведем только те, у которых <2 примеров
-    # for cls, c in cnt.items():
-    #     if c < 2000:
-    #         # если у вас есть список labels (доменов), то можно:
-    #         print(f"Проблемный класс {cls} ({labels[cls] if cls < len(labels) else 'unknown'}): всего {c} примеров")
     split_1 = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=41) 
     for train_index, test_index in split_1.split(x_payload, dataset_label):
         x_payload_train, y_train = x_payload[train_index], dataset_label[train_index]
